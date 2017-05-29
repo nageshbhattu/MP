@@ -12,6 +12,7 @@ import cc.mallet.types.Dirichlet;
  * @author nageshbhattu
  */
 public class Graph {
+    int[] targetLabels; // numInstances
     double[][] targetLabelDists; // numInstances X numLabels
     double[][] pDists; // numInstances X numLabels
     double[][] qDists; // numInstances X numLabels
@@ -20,10 +21,10 @@ public class Graph {
     
     int numLabels;
     int numInstances;
-    public Graph(int numInstances, int numLabels, double[][] targetLabelDists, double[][] weights, int[][] edges){
+    public Graph(int numInstances, int numLabels, int[]targetLabels, double[][] weights, int[][] edges){
         this.numInstances = numInstances;
         this.numLabels = numLabels;
-        this.targetLabelDists = targetLabelDists;
+        this.targetLabels = targetLabels;
         this.weights = weights;
         this.edges = edges;
         pDists = new double[numInstances][];
@@ -43,11 +44,23 @@ public class Graph {
         return pDists[nodeId];
     }
     
+    public int getMaxProbLabel(int nodeId){
+        double maxProb  = 0.0;
+        int maxProbLabel = -1;
+        for(int li = 0;li<numLabels;li++){
+            if(maxProb<pDists[nodeId][li]){
+                maxProb = pDists[nodeId][li];
+                maxProbLabel = li;
+            }
+        }
+        return maxProbLabel;
+    }
+    
     public double[] getQDist(int nodeId){
         return qDists[nodeId];
     }
-    public double[] getTargetDist(int nodeId){
-        return targetLabelDists[nodeId];
+    public int getTargetLabel(int nodeId){
+        return targetLabels[nodeId];
     }
     public int[] getNeighbors(int nodeId){
         return edges[nodeId];
@@ -55,4 +68,5 @@ public class Graph {
     public double[] getNeighborWeights(int nodeId){
         return weights[nodeId];
     }
+    
 }

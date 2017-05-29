@@ -6,6 +6,7 @@
 package mp;
 
 import java.io.IOException;
+import static java.lang.System.exit;
 
 /**
  *
@@ -30,8 +31,7 @@ public class MP {
             
             if (i<numLabeledInstances) { 
                 double[] qDist = g.getQDist(i);
-                double[] targetDist = g.getTargetDist(i);
-                term1 +=KLDivergence(targetDist,qDist);
+                term1 += -Math.log(qDist[g.getTargetLabel(i)]);
             }
         }
         
@@ -60,26 +60,29 @@ public class MP {
         term3 = term3 * nu;
         
     }    
-    public void init(String labelFile, String graphFile,int numInstances,int numLabels,int numLabeledInstances)throws IOException{
-        CorpusReader cr = new CorpusReader(labelFile, graphFile,numInstances,numLabels);
+    public void init(String graphFile,int numInstances,int numLabels,int numLabeledInstances,double nu, double mu)throws IOException{
+        CorpusReader cr = new CorpusReader(graphFile,numInstances,numLabels);
         g = cr.getGraph();
         this.numLabeledInstances = numLabeledInstances;
         this.numInstances = g.numInstances;
         this.numLabels = g.numLabels;
-        
+        this.numUnlabeledInstances = this.numInstances - this.numLabeledInstances;
+        this.nu = nu;
+        this.mu = mu;
     }
     public void AM() {
         
         beta = new double[numLabels];
+        convergence = new double[numIterations];
         for(int iter = 0;iter < numIterations;iter++){
             updateP();
             convergence[iter] = updateQ();
+            System.out.println(" Accuracy for Iteration " + iter +" is " + computeAccuracy());
             if(iter>0){
                 double change = (convergence[iter-1]-convergence[iter])/convergence[iter];
                 if(change<CONVERGENCE_CRITERIA){
                     System.out.println("Converged in "+iter + " Steps ");
                     iter = numIterations +1;
-                    
                     break;
                 }
             }
@@ -129,7 +132,6 @@ public class MP {
             double change = 0.0;
             double[] neighborWeights = g.getNeighborWeights(ni);
             int[] neighbors = g.getNeighbors(ni);
-            double[] targetDistribution = g.getTargetDist(ni);
             
             double[] selfPDist = g.getPDist(ni);
             
@@ -145,7 +147,8 @@ public class MP {
                 double numerator = 0.0;
                 double denominator = 0.0;
                 if(ni<numLabeledInstances){
-                    numerator = targetDistribution[li];
+                    if(li==g.getTargetLabel(ni))
+                        numerator = 1.0;
                     denominator = 1.0;
                 }
                 
@@ -168,7 +171,13 @@ public class MP {
         }
         return convergence;
     }
-    
+    public double computeAccuracy(){
+        int nCorrect = 0;
+        for(int ii = numLabeledInstances;ii<numInstances;ii++){
+            if(g.getMaxProbLabel(ii)== g.getTargetLabel(ii)) nCorrect++;
+        }
+        return (double) (nCorrect)/numUnlabeledInstances; 
+    }
     public double KLDivergence(double[] dist1, double[] dist2){
         double kldivergence = 0.0;
         for(int di = 0;di<dist1.length;di++){
@@ -187,8 +196,23 @@ public class MP {
     /**
      * @param args the command line arguments
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
+        
+        if(args.length<6){
+            System.out.println("Usage: \n MP graphfile numInstances numLabels numLabeledInstances nu mu");
+            exit(0);
+        }
         // TODO code application logic here
+        MP mp = new MP();
+        mp.numIterations = 100;
+        String graphFile = args[0];
+        int numInstances = Integer.parseInt(args[1]);
+        int numLabels = Integer.parseInt(args[2]);
+        int numLabeledInstances = Integer.parseInt(args[3]);
+        double nu = Double.parseDouble(args[4]);
+        double mu = Double.parseDouble(args[5]);
+        mp.init(graphFile, numInstances, numLabels, numLabeledInstances,nu,mu);
+        mp.AM();
     }
     
 }
