@@ -17,46 +17,35 @@ import java.io.IOException;
  * @author nageshbhattu
  */
 public class CorpusReader {
+    int[] targetLabels; // numInstances
     double[][] targetLabelDists; // numInstances X numLabels
     double[][] weights; // Graph in Adjacency List form
     int[][] edges; // Graph Edges
     
     int numLabels;
     int numInstances;
-    public CorpusReader(String labelFile, String graphFile,int numInstances,int numLabels) throws IOException{
+    public CorpusReader( String graphFile,int numInstances,int numLabels) throws IOException{
         this.numInstances = numInstances;
         this.numLabels = numLabels;
-        init();
-        readLabels(labelFile);
-        readGraph(graphFile);
-        
-    }
-    public Graph getGraph(){
-        return new Graph(numInstances,numLabels,targetLabelDists, weights,edges);
-    }
-    public void init(){
         weights = new double[numInstances][];
         edges = new int[numInstances][];
-        targetLabelDists = new double[numInstances][numLabels];
+        targetLabels = new int[numInstances];
+        readGraph(graphFile);
     }
-    public void readLabels(String labelFile) throws FileNotFoundException, IOException{
-        BufferedReader br = new BufferedReader(new FileReader(new File(labelFile)));
-        String line = null;
-        int instIndex = 0;
-        while((line = br.readLine())!=null){
-            targetLabelDists[instIndex][Integer.parseInt(line)] = 1.0;
-            instIndex++;
-        }
+    
+    public Graph getGraph(){
+        return new Graph(numInstances,numLabels,targetLabels, weights,edges);
     }
+          
     public void readGraph(String graphFile) throws FileNotFoundException, IOException{
         BufferedReader br = new BufferedReader(new FileReader(new File(graphFile)));
         String line = null;
-        int instIndex = 0;
+        int nodeId = 0;
         while((line = br.readLine())!=null){ 
         // first number indicates the node-id and remaining items in the list contain 
         // adjacency list encoded as adj_vertex_id:weight_of_the_edge separated by spaces
-            String[] adjList = line.split("\\s");
-            int nodeId = Integer.parseInt(adjList[0]);
+            String[] adjList = line.split("\\s+");
+            targetLabels[nodeId] = Integer.parseInt(adjList[0]);
             weights[nodeId] = new double[adjList.length-1];
             edges[nodeId] = new int[adjList.length-1];
             for(int n=1;n<adjList.length;n++){
@@ -64,6 +53,7 @@ public class CorpusReader {
                 weights[nodeId][n-1] = Double.parseDouble(nodeIDWeight[1]);
                 edges[nodeId][n-1] = Integer.parseInt(nodeIDWeight[0]);
             }
+            nodeId++;
         }
     }
 }
